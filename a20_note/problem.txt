@@ -1,0 +1,163 @@
+问题1：在有装虚拟机的电脑在使用PhoenixSuit下载程序时可能会出现usb无法识别的情况；
+解决方法: usb被占用了，在服务中停止以下服务：VMware USB Arbitration Service
+
+问题2：串口控制台一直有信息打印
+解决方法: 屏蔽打印(其实是修改打印等级) echo 4 > /proc/sys/kernel/printk
+
+问题3：adb push 文件到目录时提示Read-only file system
+解决方法: mount -o remount,rw /dev/block/nandc /system
+
+问题4：如何添加开机启动脚本
+解决方法: 修改 \android\device\softwinner\wing-clover\init.sun7i.rc文件
+          重新编译，烧写
+
+问题5：用fastboot烧写system.img时出现 data too large 错误
+解决方法：修改lichee/u-boot/include/configs/sun7i.h文件 
+          把  ：#define FASTBOOT_TRANSFER_BUFFER_SIZE (256 << 20)
+          改为：#define FASTBOOT_TRANSFER_BUFFER_SIZE   (1024 << 20) //此值为最大烧写大小限制值
+          重新编译，烧写，下次启动便可使用fastboot烧写大容量镜像文件了
+
+问题6：从7寸屏改成4.3寸屏时，开机时弹出 “系统用户界面已停止”
+原因： SystemUI.apk 即开机显示的ui布局问题引起
+解决办法1：可以删除 /system/app/SystemUI.apk 文件，重新开机即可，
+解决办法2：删除 frameworks/base/packages/SystemUI/android.mk文件，重新编译烧写即可
+解决办法3：frameworks/base/packages/SystemUI 目录下的相关布局文件，此方法相对复杂，没有测试 
+
+问题7：去除开机锁屏
+解决办法：修改 android\frameworks\base\policy\src\com\android\internal\policy\impl\keyguard\KeyguardViewMediator.java
+               android\frameworks\base\policy\src\com\android\internal\policy\impl\keyguard_obsolete\KeyguardViewMediator.java
+两个文件都把   private boolean mExternallyEnabled = true; 改为 private boolean mExternallyEnabled = false;    
+
+问题8：android 开机很慢，停在启动画很久
+原因：  用指令查看日志信息 adb shell logcat -v time > time3.txt 发现以下信息，当打印完此信息后才显示android桌面，
+	网上查找Dropped event because input dispatch is disabled 发现是由于一个叫WallpaperService的服务影响的
+	01-01 08:09:06.110 I/InputDispatcher( 1489): Dropped event because input dispatch is disabled.
+
+	01-01 08:09:06.130 I/InputDispatcher( 1489): Dropped event because input dispatch is disabled.
+
+	01-01 08:09:06.230 I/SurfaceFlinger( 1170): Boot is finished (41682 ms)
+
+	01-01 08:09:06.230 W/WindowManager( 1489): ***** BOOT TIMEOUT: forcing display enabled
+解决办法：参考：http://blog.csdn.net/u012587637/article/details/48289189
+                http://blog.csdn.net/jackyu613/article/details/6044297
+                http://www.eoeandroid.com/thread-29953-1-1.html
+	修改  \android\frameworks\base\core\res\res\values\config.xml  第634行：
+        <bool name="config_enableWallpaperService">true</bool>   改为
+        <bool name="config_enableWallpaperService">false</bool>
+
+问题9：修改固定mac地址
+        1.修改 
+	  把 #undef  DYNAMIC_MAC_SYSCONFIG 改为 #define	DYNAMIC_MAC_SYSCONFIG
+        2.在sys_config.fex 添加
+	  [dynameic]
+
+          MAC = "001122778899"
+	3.修改\lichee\tools\pack\chips\sun7i\configs\android\default\env.cfg
+          把 boot_normal=boota 40007800  改为 
+boot_normal=fatload nand 0 43000000 script.bin;boota 40007800
+        4.使用A20script修改工具
+
+问题10.lcd 显示屏不亮问题
+		参数配置pwm设置流程disp_lcd.c --> Disp_lcdc_init --> pwm_set_para
+		
+		显示屏pwm控制流程 dev_disp.c  -->  disp_ioctl
+		-->	case DISP_CMD_LCD_SET_BRIGHTNESS:
+						printk("ubuffer[0]=%d, ubuffer[1]=%d\n",ubuffer[0], ubuffer[1]);
+						ret = BSP_disp_lcd_set_bright(ubuffer[0], ubuffer[1]);
+						break;
+		
+		原因：TPS61040 电压芯片 接收的pwm频率为100Hz-500Hz 开发板的电压芯片 接收的pwm频率设置为25000Hz
+		      具体设置在sys_config.fex 中的lcd_pwm_freq 参数 
+		解决办法：lcd_pwm_freq 改为400；
+		    改了参数以后在 占空比的计算中出出现数据超出32位的限制
+		disp_lcd.c --> Disp_lcdc_init --> pwm_set_para 把这句
+		  active_cycle = (pwm_info->duty_ns * entire_cycle + (pwm_info->period_ns/2)) / pwm_info->period_ns;
+        改为 --> active_cycle = ((pwm_info->duty_ns>>8) * entire_cycle + ((pwm_info->period_ns>>8)/2)) / (pwm_info->period_ns>>8);
+
+        这样算出来的数据没那么精确，但是不影响使用
+		同样在上层控制pwm设置时也作相应的修改 disp_lcd.c --> pwm_set_duty_ns 的下面这句
+		active_cycle = (duty_ns * gdisp.pwm[channel].entire_cycle + (gdisp.pwm[channel].period_ns/2)) / gdisp.pwm[channel].period_ns;
+
+        改为：active_cycle = ((duty_ns>>8) * gdisp.pwm[channel].entire_cycle + ((gdisp.pwm[channel].period_ns>>8)/2)) / (gdisp.pwm[channel].period_ns>>8);
+		
+问题11: 修改android系统显示 默认亮度的最大最小限制
+        修改 Z:\A20\androidSdk\android\frameworks\base\core\res\res\values\config.xml
+		<!-- Minimum screen brightness setting allowed by the power manager.
+         The user is forbidden from setting the brightness below this level. -->
+    <integer name="config_screenBrightnessSettingMinimum">110</integer>
+
+    <!-- Maximum screen brightness allowed by the power manager.
+         The user is forbidden from setting the brightness above this level. -->
+    <integer name="config_screenBrightnessSettingMaximum">255</integer>
+
+    <!-- Default screen brightness setting.
+         Must be in the range specified by minimum and maximum. -->
+    <integer name="config_screenBrightnessSettingDefault">220</integer>
+
+    <!-- Screen brightness used to dim the screen when the user activity
+         timeout expires.  May be less than the minimum allowed brightness setting
+         that can be set by the user. -->
+    <integer name="config_screenBrightnessDim">110</integer>
+	
+	修改：Z:\A20\androidSdk\android\frameworks\base\packages\SettingsProvider\res\values\defaults.xml
+	<integer name="def_screen_brightness">250</integer><!--102-->
+问题12：应用修改屏亮度http://blog.csdn.net/jiangxuelei_2015/article/details/51243575	
+
+问题13：替换讯飞语音包
+    1. 删除原来的tts语音  
+    	把Z:\A20\androidSdk\android\external\svox 目录下所有mk文件屏蔽掉，这样编译的时候 就不会把这里的源码编译进去了
+	2. 把讯飞语音apk 放在Z:\A20\androidSdk\android\device\softwinner\wing-common\apk 目录下
+	3. 把讯飞语音的库话 Z:\A20\androidSdk\android\device\softwinner\wing-common\apklib 目录下
+
+问题14：开机设置默认以太网静态ip	
+		1. 修改setting默认配置 （android 第一次起动） 以下两个 文件内容差不多一样的
+		Z:\A20\androidSdk\android\frameworks\base\packages\SettingsProvider\res\values\defaults.xml（这个可以不修改）
+		Z:\A20\androidSdk\android\device\softwinner\wing-clover\overlay\frameworks\base\packages\SettingsProvider\res\values\defaults.xml（这个必需修改，最终调用的是这个）
+		修改添加 
+		<bool name="def_ethernet_on">true</bool><!--false-->
+		<bool name="def_ethernet_mode">false</bool><!--false-->
+
+		<!--start add by dbl-->
+		<string name="def_ethernet_ip" translatable="false">192.168.1.100</string>
+		<string name="def_ethernet_mask" translatable="false">255.255.255.0</string>
+		<string name="def_ethernet_gw" translatable="false">192.168.1.1</string>
+		<string name="def_ethernet_dns" translatable="false">8.8.8.8</string>
+		<add-resource type="string" name="def_ethernet_ifname" />
+		<string name="def_ethernet_ifname" translatable="false">eth0</string>
+		<add-resource type="bool" name="def_ethernet_conf" />
+		<bool name="def_ethernet_conf">true</bool>
+		<!--end add by dbl-->
+		
+		2. 修改数据库读取代码
+		Z:\A20\androidSdk\android\frameworks\base\packages\SettingsProvider\src\com\android\providers\settings\DatabaseHelper.java --》private void loadSecureSettings(SQLiteDatabase db) {
+		添加以下代码
+		//start add by dbl
+		    loadStringSetting( stmt, Settings.Secure.ETHERNET_IFNAME,
+                    R.string.def_ethernet_ifname );
+			loadStringSetting( stmt, Settings.Secure.ETHERNET_IP,
+                    R.string.def_ethernet_ip );
+			loadStringSetting( stmt, Settings.Secure.ETHERNET_MASK,
+                    R.string.def_ethernet_mask );
+			loadStringSetting( stmt, Settings.Secure.ETHERNET_ROUTE,
+                    R.string.def_ethernet_gw );
+			loadStringSetting( stmt, Settings.Secure.ETHERNET_DNS,
+                    R.string.def_ethernet_dns );
+			loadBooleanSetting(stmt, Settings.Secure.ETHERNET_CONF,
+                    R.bool.def_ethernet_conf);
+		//end add by dbl
+		3.Z:\A20\androidSdk\android\frameworks\base\core\java\android\provider\Settings.java  这个文件下有上面两步设置的字段
+		/**
+         * Ethernet related configurations
+         */
+        public static final String ETHERNET_ON      = "eth_on";
+        public static final String ETHERNET_MODE    = "eth_mode";
+        public static final String ETHERNET_IP      = "eth_ip";
+        public static final String ETHERNET_MASK    = "eth_netmask";
+        public static final String ETHERNET_DNS     = "eth_dns";
+        public static final String ETHERNET_ROUTE   = "eth_route";
+        public static final String ETHERNET_CONF    = "eth_conf";
+        public static final String ETHERNET_IFNAME  = "eth_ifname";
+		
+		重新编译打包
+		          
+

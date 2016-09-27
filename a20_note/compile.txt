@@ -1,0 +1,36 @@
+一、在源码下编译.ko文件(此方法是所有文件.ko一起编译)
+1.把源码放到drivers目录下
+2.在lichee目录下执行 ./build.sh -p sun7i_android -m kernel （具体看 buil.sh文件）
+  输出在 linux-3.4/output/lib/modules/3.4.39/
+
+/********************************************************/
+m      编译全部的模块
+mm     用于编译当前目录下的工程
+mmm    用于编译指定目录
+/********************************************************/
+二、用源码编译apk
+1.进入android源码路径
+2.执行 . build/envsetup.sh
+3.执行 lunch 选 15 
+4.进入要编译的源码目录 执行 mm, //或者直接执行 mmm packages/apps/aebell/gpio_exe
+  编译完成会有打印 install:XXX（这里就是文件输出路径）
+
+三、用源码编译 执行文件
+1.进入android源码路径
+2.执行 . build/envsetup.sh
+3.执行 lunch 选 15 
+4.进入要编译的源码目录 执行 mm, 或者直接执行 mmm packages/apps/aebell/gpio_exe(项目路径)
+  编译完成会有打印 install:XXX（这里就是文件输出路径）
+  如：Install: out/target/product/wing-clover/system/bin/ControlGpio
+  
+  
+
+四、用源码编译jni
+1.进入android源码路径
+2.执行 . build/envsetup.sh
+3.执行 lunch 选 15 
+4.进入要编译的源码目录 执行 mm, 或者直接执行 mmm packages/apps/aebell/gpio_jni/jni(项目路径)
+  编译完成会有打印 install:XXX（这里就是文件输出路径） 
+  如：Install: out/target/product/wing-clover/system/lib/ControlGpio.so （把这个文件删除才会重新编译 ）
+
+

@@ -1,0 +1,10 @@
+1.修改bootlogo (注意要把原来的不要的图片删除)
+替换Z:\A20\androidSdk\lichee\tools\pack\chips\sun7i\wboot\bootfs\os_show\bootlogo.bmp 
+重新打包即可
+2.修改开机启动声音
+替换Z:\A20\androidSdk\android\device\softwinner\wing-clover\media\boot.wav
+重新打包即可
+3.删除开机启动声音
+修改Z:\A20\androidSdk\android\device\softwinner\wing-clover\wing_clover.mk
+device/softwinner/wing-clover/media/boot.wav:system/media/boot.wav
+改为 #device/softwinner/wing-clover/media/boot.wav:system/media/boot.wav
