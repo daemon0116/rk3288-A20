@@ -12,8 +12,8 @@ else
 fi
 ./mountRk3288System.sh
 ./addSystemSu.sh
-./addXfyyhcRmTtsApk.sh
-./modifyLangAndTimezone.sh
+./modifyApk.sh
+#./modifyLangAndTimezone.sh
 ./modifyEthernet.sh
 ./umountRk3288System.sh
 
