@@ -1,0 +1,9 @@
+---- Flag Matches (8 in 1 files) ----
+SysConfig.c (C:\Users\Administrator\Desktop\jni\jni):UINT16 ProcNetCongfig(void *Data,INT32 DataSize,INT16 *Flag)
+SysConfig.c (C:\Users\Administrator\Desktop\jni\jni):INT16 ProcNetCongfig(void *Data, INT32 DataSize, int *Flag)
+SysConfig.c (C:\Users\Administrator\Desktop\jni\jni):	*Flag = SYS_NORMAL;
+SysConfig.c (C:\Users\Administrator\Desktop\jni\jni):		//*Flag = SYS_REBOOT;
+SysConfig.c (C:\Users\Administrator\Desktop\jni\jni):		*Flag = SYS_REBOOT;
+SysConfig.c (C:\Users\Administrator\Desktop\jni\jni):    int flag;
+SysConfig.c (C:\Users\Administrator\Desktop\jni\jni):    if((DataSize = ProcNetCongfig(pNetRecv->pdata, pNetRecv->dataLen, &flag)) > 0)
+SysConfig.c (C:\Users\Administrator\Desktop\jni\jni):        if(flag == SYS_REBOOT){
